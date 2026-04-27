@@ -1,102 +1,134 @@
-version: "3.9"
-
+name: observability-stack
 services:
 
-  # -----------------------------
-  # Seq (Structured Log Viewer)
-  # -----------------------------
+  # -------------------------
+  # SEQ - Merkezi Loglama
+  # -------------------------
   seq:
-    image: datalust/seq:latest
+    image: datalust/seq:2024.3
     container_name: seq
+    restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
+      SEQ_CACHE_SYSTEMRAMTARGET: 0.7
     ports:
       - "5341:80"
     volumes:
       - seq_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
-      - observability
+      - observability-network
 
-  # -----------------------------
-  # Elasticsearch
-  # -----------------------------
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
-    container_name: elasticsearch
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    networks:
-      - observability
+  # -------------------------
+  # ELASTICSEARCH
+  # -------------------------
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+  #   container_name: elasticsearch
+  #   restart: unless-stopped
+  #   environment:
+  #     discovery.type: single-node
+  #     xpack.security.enabled: "false"
+  #     ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - elastic_data:/usr/share/elasticsearch/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 10
+  #   networks:
+  #     - observability-network
 
-  # -----------------------------
-  # Kibana (Elasticsearch UI)
-  # -----------------------------
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.0
-    container_name: kibana
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-    networks:
-      - observability
+  # -------------------------
+  # KIBANA
+  # -------------------------
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:8.13.4
+  #   container_name: kibana
+  #   restart: unless-stopped
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+  #   environment:
+  #     ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+  #   ports:
+  #     - "5601:5601"
+  #   networks:
+  #     - observability-network
 
-  # -----------------------------
-  # Jaeger
-  # -----------------------------
+  # -------------------------
+  # JAEGER - Traces
+  # -------------------------
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.0
     container_name: jaeger
+    restart: unless-stopped
+    environment:
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
     ports:
-      - "16686:16686"   # UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "5778:5778"
+      - "9411:9411"
+    volumes:
+      - jaeger_data:/badger
     networks:
-      - observability
+      - observability-network
 
-  # -----------------------------
-  # Prometheus
-  # -----------------------------
+  # -------------------------
+  # PROMETHEUS - Metrikler
+  # -------------------------
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.52.0
     container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d' # Disk dolmaması için 7 gün yeterli olabilir
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks:
-      - observability
+      - observability-network
 
-  # -----------------------------
-  # Grafana
-  # -----------------------------
+  # -------------------------
+  # GRAFANA - Dashboard
+  # -------------------------
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.0.0
     container_name: grafana
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
     networks:
-      - observability
+      - observability-network
 
 networks:
-  observability:
+  observability-network:
+    external: true
 
 volumes:
   seq_data:
-  es_data:
+  jaeger_data:
+  prometheus_data:
   grafana_data:
+  # elastic_data:
