@@ -1,87 +1,126 @@
 # Observability Stack
 
-Bu proje, Docker Compose ile yerel ortamda log, metric ve trace toplamak/izlemek icin hazir bir observability ortami kurar.
+Bu repo, Docker Compose ile yerel ortamda observability kurulumu yapmak icin iki farkli secenek sunar:
 
-## Icerik
-
-- Seq (merkezi loglama)
-- Jaeger (trace goruntuleme)
-- Prometheus (metric toplama)
-- Grafana (dashboard)
-- Elasticsearch/Kibana tanimlari dosyada mevcut, ancak su an yorum satirinda (pasif)
+- Seq + Jaeger + Prometheus + Grafana
+- SigNoz
 
 ## Gereksinimler
 
-- Docker Desktop (Windows icin)
+- Docker Desktop (Windows)
 - Docker Compose v2
 
-Bu compose dosyasi asagidaki harici agin var oldugunu bekler:
+## Secenek 1: Seq + Jaeger + Prometheus + Grafana
 
-- `observability-network`
+Compose dosyasi: `seq-jaeger-promethus-grafana/docker-compose.yml`
 
-Eger yoksa bir kere olusturun:
+### Hazirlik
+
+Bu stack, harici `observability-network` aginin var olmasini bekler.
 
 ```bash
 docker network create observability-network
 ```
 
-## Hizli Baslangic
-
-Proje kok dizininde calistirin:
+### Calistirma
 
 ```bash
+cd seq-jaeger-promethus-grafana
 docker compose up -d
 ```
 
-Durumu kontrol edin:
+Durumu kontrol:
 
 ```bash
 docker compose ps
 ```
 
-Log izleyin:
+Loglar:
 
 ```bash
 docker compose logs -f
 ```
 
-## Erisim Adresleri
+### Erisim Adresleri
 
 - Seq: http://localhost:5341
 - Jaeger UI: http://localhost:16686
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
 
-Grafana varsayilan giris bilgileri:
+Grafana varsayilan giris:
 
 - Kullanici: `admin`
 - Sifre: `admin`
 
-## Prometheus Hedefi
+### Prometheus Hedefi
 
-`prometheus/prometheus.yml` dosyasinda su anda tek hedef bulunur:
+`seq-jaeger-promethus-grafana/prometheus/prometheus.yml` dosyasinda varsayilan hedef:
 
 - `host.docker.internal:5000` (`/metrics` endpoint)
 
-Bu, host makinede calisan bir .NET API icin ayarlanmistir. Uygulamaniz farkli portta calisiyorsa hedefi guncelleyin.
+Host makinede calisan .NET API icin ayarlidir. Uygulamaniz farkli portta ise hedefi guncelleyin.
 
-## Durdurma ve Temizlik
-
-Servisleri durdurmak icin:
+### Durdurma
 
 ```bash
 docker compose down
 ```
 
-Tum verileri (volume) silerek sifirdan baslatmak icin:
+Tum volume'leri silerek sifirdan baslatma:
 
 ```bash
 docker compose down -v
 ```
 
-## Notlar
+### Notlar
 
-- Retention Policy (Veri Saklama Süresi): Seq'e çok fazla log akmaya başlarsa disk dolabilir. Seq arayüzüne girdikten sonra Settings -> Retention kısmından örneğin "30 günden eski logları sil" gibi bir kural eklemeyi unutma.
-- Compose dosyasinda veri kaliciligi icin volume tanimlari kullanilir.
-- Prometheus retention suresi `7d` olarak ayarlanmistir.
-- Elasticsearch ve Kibana acilmak istenirse `docker-compose.yml` icindeki ilgili bolumlerin yorumlarini kaldirabilirsiniz.
+- Seq'e yuksek log akisi varsa disk hizla dolabilir. Seq UI icinde Settings -> Retention altindan kural ekleyin.
+- Prometheus retention suresi compose icinde `7d` olarak ayarlanmistir.
+- Elasticsearch/Kibana bolumleri compose dosyasinda yorum satirindadir; gerekirse acabilirsiniz.
+
+## Secenek 2: SigNoz
+
+Compose dosyasi: `signoz/deploy/docker/docker-compose.yaml`
+
+### Calistirma
+
+```bash
+cd signoz/deploy/docker
+docker compose up -d
+```
+
+Durumu kontrol:
+
+```bash
+docker compose ps
+```
+
+Loglar:
+
+```bash
+docker compose logs -f
+```
+
+### Erisim Adresleri
+
+- SigNoz UI: http://localhost:8080
+- OTLP gRPC: localhost:4317
+- OTLP HTTP: localhost:4318
+
+### Durdurma
+
+```bash
+docker compose down
+```
+
+Tum volume'leri silerek sifirdan baslatma:
+
+```bash
+docker compose down -v
+```
+
+## Hangi Stack'i Secmeliyim?
+
+- Hizli ve parcali bir kurulum istiyorsaniz: Seq + Jaeger + Prometheus + Grafana
+- Tek bir UI'dan log/metric/trace yonetimi istiyorsaniz: SigNoz
