@@ -80,6 +80,8 @@ services:
   zookeeper-1:
     !!merge <<: *zookeeper-defaults
     container_name: signoz-zookeeper-1
+    mem_limit: 384m
+    mem_reservation: 192m
     # ports:
     #   - "2181:2181"
     #   - "2888:2888"
@@ -95,8 +97,8 @@ services:
   clickhouse:
     !!merge <<: *clickhouse-defaults
     container_name: signoz-clickhouse
-    mem_limit: 6g
-    mem_reservation: 3g
+    mem_limit: 4g
+    mem_reservation: 2g
     # ports:
     #   - "9000:9000"
     #   - "8123:8123"
@@ -113,6 +115,8 @@ services:
     !!merge <<: *db-depend
     image: signoz/signoz:${VERSION:-v0.122.0}
     container_name: signoz
+    mem_limit: 900m
+    mem_reservation: 256m
     ports:
       - "8080:8080" # signoz port
     volumes:
@@ -136,8 +140,8 @@ services:
     !!merge <<: *db-depend
     image: signoz/signoz-otel-collector:${OTELCOL_TAG:-v0.144.3}
     container_name: signoz-otel-collector
-    mem_limit: 1500m
-    mem_reservation: 512m
+    mem_limit: 900m
+    mem_reservation: 384m
     entrypoint:
       - /bin/sh
     command:
