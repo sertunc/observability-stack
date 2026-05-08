@@ -1,0 +1,4 @@
+- Signoz docker defaults in this repo were memory-aggressive for ClickHouse and OTel collector.
+- Applied limits: clickhouse max_server_memory_usage=4GiB, ratio=0.6, uncompressed_cache=1GiB, mark_cache=2GiB.
+- Applied collector tuning: smaller batch sizes, dimensions_cache_size=20000, memory_limiter added (768MiB).
+- Added compose memory limits: clickhouse 6g/3g reservation, otel-collector 1500m/512m reservation.
