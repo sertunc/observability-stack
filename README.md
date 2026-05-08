@@ -43,10 +43,14 @@ docker compose logs -f
 
 ### Erisim Adresleri
 
-- Seq: http://localhost:5341
-- Jaeger UI: http://localhost:16686
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
+| Servis                  | URL                        |
+|-------------------------|----------------------------|
+| Seq                     | http://localhost:5341      |
+| Jaeger UI               | http://localhost:16686     |
+| Prometheus              | http://localhost:9090      |
+| Grafana                 | http://localhost:3000      |
+| OpenSearch              | http://localhost:9200      |
+| OpenSearch Dashboards   | http://localhost:5601      |
 
 Grafana varsayilan giris:
 
@@ -73,10 +77,22 @@ Tum volume'leri silerek sifirdan baslatma:
 docker compose down -v
 ```
 
+### Servisler
+
+| Servis                  | Amac                                      |
+|-------------------------|-------------------------------------------|
+| Seq                     | Merkezi log toplama ve sorgulama          |
+| OpenSearch              | Log ve arama motoru (Elasticsearch uyumlu)|
+| OpenSearch Dashboards   | OpenSearch icin gorsel UI (Kibana uyumlu) |
+| Jaeger                  | Distributed tracing                       |
+| Prometheus              | Metrik toplama                            |
+| Grafana                 | Metrik ve log gorsellestime               |
+
 ### Notlar
 
 - Seq'e yuksek log akisi varsa disk hizla dolabilir. Seq UI icinde Settings -> Retention altindan kural ekleyin.
 - Prometheus retention suresi compose icinde `7d` olarak ayarlanmistir.
+- OpenSearch guvenlik eklentisi yerel test icin devre disi birakilmistir (`DISABLE_SECURITY_PLUGIN=true`). Uretim ortaminda etkinlestirin.
 - Elasticsearch/Kibana bolumleri compose dosyasinda yorum satirindadir; gerekirse acabilirsiniz.
 
 ## Secenek 2: SigNoz

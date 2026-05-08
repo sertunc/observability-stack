@@ -22,6 +22,52 @@ services:
       retries: 3
     networks:
       - observability-network
+  
+  # -------------------------
+  # OPENSEARCH - Log & Search Engine
+  # -------------------------
+  opensearch:
+    image: opensearchproject/opensearch:3
+    container_name: opensearch
+    restart: unless-stopped
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"  # RAM kullanımını projenize göre artırabilirsiniz
+      - DISABLE_INSTALL_DEMO_CONFIG=true          # Güvenlik eklentisi ayarları için (Demo mod kapalı)
+      - DISABLE_SECURITY_PLUGIN=true              # Yerel test için güvenliği kapatıyoruz (HTTP üzerinden erişim)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200" # Host 9200 dolu olabilir diye 9201'e aldım
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - observability-network
+
+  # -------------------------
+  # OPENSEARCH DASHBOARDS - UI
+  # -------------------------
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3
+    container_name: opensearch-dashboards
+    restart: unless-stopped
+    depends_on:
+      - opensearch
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true     # Güvenliği opensearch ile uyumlu şekilde kapattık
+    ports:
+      - "5601:5601"                                 # Host 5601 Kibana için ayrılmış olabilir, 5602'ye aldım
+    networks:
+      - observability-network
 
   # -------------------------
   # ELASTICSEARCH
@@ -131,4 +177,5 @@ volumes:
   jaeger_data:
   prometheus_data:
   grafana_data:
+  opensearch_data:
   # elastic_data:
